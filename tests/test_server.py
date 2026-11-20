@@ -3,6 +3,7 @@ from threading import Thread
 import unittest
 from urllib.parse import urlencode
 
+from src.linear_probing import LinearProbingHashTable
 from src.server import create_server
 
 
@@ -78,6 +79,38 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(response.status, 413)
         response.read()
         connection.close()
+
+    def test_linear_table_page_shows_probe_cells(self):
+        server = create_server(
+            host="127.0.0.1",
+            port=0,
+            hash_table_class=LinearProbingHashTable,
+        )
+        thread = Thread(target=server.serve_forever)
+        thread.start()
+        try:
+            host, port = server.server_address
+            connection = http.client.HTTPConnection(host, port)
+            body = urlencode({"url": "https://example.com/linear"})
+            connection.request(
+                "POST",
+                "/shorten",
+                body=body,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            response = connection.getresponse()
+            response.read()
+            connection.request("GET", "/table")
+            response = connection.getresponse()
+            table_page = response.read()
+            self.assertEqual(response.status, 200)
+            self.assertIn(b"Selected strategy: linear probing", table_page)
+            self.assertIn(b"probed cells", table_page)
+            connection.close()
+        finally:
+            server.shutdown()
+            server.server_close()
+            thread.join()
 
 
 if __name__ == "__main__":
