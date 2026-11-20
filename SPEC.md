@@ -32,7 +32,7 @@
 
 ## 5. 웹 서버
 
-- `python3 src/server.py --port 8000` 또는 `make serve`로 서버를 실행한다. 서버는 외부 URL을 가져오지 않으며 리다이렉트 응답만 보낸다.
+- `python3 -m src.server --port 8000` 또는 `make serve`로 서버를 실행한다. 서버는 외부 URL을 가져오지 않으며 리다이렉트 응답만 보낸다.
 - `GET /`은 URL 입력 폼을 보여 준다. `POST /shorten`은 폼의 `url` 필드를 검증하고 단축 결과를 보여 준다. 잘못된 URL은 HTTP 400으로 표시한다.
 - `GET /s/<code>`는 등록된 URL에 HTTP 302로 리다이렉트한다. 없는 코드는 HTTP 404를 반환한다.
 - `GET /table`은 해시 테이블의 버킷, 각 버킷의 연결 리스트, 키별 호너 계산 근거와 최근 탐색 비용을 보여 준다.
