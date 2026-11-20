@@ -18,56 +18,89 @@ def _render_page(title: str, content: str) -> bytes:
         "<!doctype html><html lang=\"en\"><meta charset=\"utf-8\">"
         f"<title>{escape(title)}</title>"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        "<style>body{font:16px sans-serif;max-width:900px;margin:2rem auto;padding:0 1rem}"
+        "<style>body{font:16px sans-serif;max-width:1100px;margin:2rem auto;padding:0 1rem}"
         "input{width:min(100%,36rem);padding:.5rem}button{padding:.5rem}"
-        "code,pre{overflow-wrap:anywhere}li{margin:.5rem 0}</style>"
+        "code,pre{overflow-wrap:anywhere}.bucket{padding:.75rem 0;border-bottom:1px solid #ddd}"
+        ".chain{display:flex;align-items:center;gap:.5rem;overflow-x:auto;padding:.5rem 0}"
+        ".chain-node{border:1px solid #aaa;border-radius:.35rem;padding:.75rem;min-width:16rem}"
+        ".chain-arrow{font-size:1.5rem;font-weight:bold}.empty{color:#666}"
+        ".probe-path{font-size:.9rem;color:#555}</style>"
         f"<h1>{escape(title)}</h1>{content}</html>"
     )
     return document.encode("utf-8")
 
 
 def _render_table(
-    title: str, table: HashTable[str] | LinearProbingHashTable[str]
+    title: str,
+    table: HashTable[str] | LinearProbingHashTable[str],
+    urls_are_keys: bool,
 ) -> str:
     buckets = table.buckets
-    content = [f"<h2>{escape(title)}</h2>", f"<p>Last lookup: {table.last_probes} nodes examined</p>"]
-    content.append("<ol>")
+    content = [
+        f"<h2>{escape(title)}</h2>",
+        f"<p>Last lookup: {table.last_probes} nodes examined</p>",
+        "<ol class=\"buckets\">",
+    ]
+
+    def render_node(key: str, value: str) -> str:
+        url = key if urls_are_keys else value
+        code = value if urls_are_keys else key
+        calculated_index, steps = table.explain_hash(key)
+        previous = 0
+        calculations = []
+        for position, (character, step) in enumerate(zip(key, steps), start=1):
+            calculations.append(
+                f"<li>h{position} = (31 * {previous} + ord(U+{ord(character):04X})) "
+                f"mod {table.capacity} = {step}</li>"
+            )
+            previous = step
+        if not calculations:
+            calculations.append("<li>The empty key hashes to 0.</li>")
+        trace = (
+            f"<details><summary>Horner hash: bucket {calculated_index}</summary>"
+            f"<ol>{''.join(calculations)}</ol></details>"
+        )
+        return (
+            '<div class="chain-node">'
+            f"<p><strong>URL key:</strong> <code>{escape(url)}</code></p>"
+            f"<p><strong>Short code:</strong> <code>{escape(code)}</code></p>"
+            f'<p><strong>Short link:</strong> <a href="/s/{escape(code, quote=True)}">'
+            f"/s/{escape(code)}</a></p>"
+            f"{trace}</div>"
+        )
+
     for index, head in enumerate(buckets):
         if isinstance(table, LinearProbingHashTable):
             if head is None:
-                bucket_contents = "<li>empty</li>"
+                bucket_contents = '<span class="empty">empty</span>'
             elif head.deleted:
-                bucket_contents = "<li>deleted tombstone</li>"
+                bucket_contents = '<span class="empty">deleted tombstone</span>'
             else:
-                calculated_index, steps = table.explain_hash(head.key)
-                trace = "0" if not steps else " -> ".join(str(value) for value in steps)
                 path = " -> ".join(str(value) for value in table.probe_path(head.key))
                 bucket_contents = (
-                    "<li><code>"
-                    + escape(head.key)
-                    + "</code> = <code>"
-                    + escape(str(head.value))
-                    + f"</code>; Horner: {trace} (home {calculated_index}); "
-                    + f"probed cells: {path}</li>"
+                    render_node(head.key, str(head.value))
+                    + f'<p class="probe-path">probed cells: {escape(path)}</p>'
                 )
-            content.append(f"<li>Cell {index}<ol>{bucket_contents}</ol></li>")
+            content.append(
+                f'<li class="bucket">Cell {index}'
+                f'<div class="chain">{bucket_contents}</div></li>'
+            )
             continue
 
         entries = []
         node = head
         while node is not None:
-            calculated_index, steps = table.explain_hash(node.key)
-            trace = "0" if not steps else " -> ".join(str(value) for value in steps)
-            entries.append(
-                "<li><code>"
-                + escape(node.key)
-                + "</code> = <code>"
-                + escape(str(node.value))
-                + f"</code>; Horner: {trace} (bucket {calculated_index})</li>"
-            )
+            entries.append(render_node(node.key, str(node.value)))
             node = node.next
-        bucket_contents = "".join(entries) if entries else "<li>empty</li>"
-        content.append(f"<li>Bucket {index}<ol>{bucket_contents}</ol></li>")
+        bucket_contents = (
+            '<span class="empty">empty</span>'
+            if not entries
+            else '<span class="chain-arrow" aria-hidden="true">&rarr;</span>'.join(entries)
+        )
+        content.append(
+            f'<li class="bucket">Bucket {index}'
+            f'<div class="chain">{bucket_contents}</div></li>'
+        )
     content.append("</ol>")
     return "".join(content)
 
@@ -108,8 +141,8 @@ def _handler_for(shortener: URLShortener) -> type[BaseHTTPRequestHandler]:
                 )
                 tables = (
                     f"<p>Selected strategy: {strategy}</p>"
-                    + _render_table("URLs to codes", shortener.by_url)
-                    + _render_table("Codes to URLs", shortener.by_code)
+                    + _render_table("URLs to codes", shortener.by_url, urls_are_keys=True)
+                    + _render_table("Codes to URLs", shortener.by_code, urls_are_keys=False)
                 )
                 self._send_page(200, "Hash table inspection", tables)
                 return

@@ -35,11 +35,20 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn(b'name="url"', body)
 
-        self.request("POST", "/shorten", urlencode({"url": "https://example.com"}))
+        for url in (
+            "https://example.com/collision-0",
+            "https://example.com/collision-23",
+        ):
+            self.request("POST", "/shorten", urlencode({"url": url}))
         status, _, body = self.request("GET", "/table")
         self.assertEqual(status, 200)
         self.assertIn(b"Horner", body)
         self.assertIn(b"URLs to codes", body)
+        self.assertIn(b"URL key", body)
+        self.assertIn(b"Short code", body)
+        self.assertIn(b"Short link", body)
+        self.assertIn(b"<details>", body)
+        self.assertIn(b"&rarr;", body)
 
     def test_post_creates_short_url_and_redirects_without_following(self):
         url = "https://example.com/path?a=1&b=2"
