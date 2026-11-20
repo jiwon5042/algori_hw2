@@ -121,6 +121,47 @@ class ServerTests(unittest.TestCase):
             server.server_close()
             thread.join()
 
+    def test_chaining_and_linear_servers_keep_separate_url_mappings(self):
+        linear_server = create_server(
+            host="127.0.0.1",
+            port=0,
+            hash_table_class=LinearProbingHashTable,
+        )
+        linear_thread = Thread(target=linear_server.serve_forever)
+        linear_thread.start()
+        try:
+            linear_host, linear_port = linear_server.server_address
+            chaining_url = "https://example.com/chaining-only"
+            linear_url = "https://example.com/linear-only"
+
+            self.request("POST", "/shorten", urlencode({"url": chaining_url}))
+
+            connection = http.client.HTTPConnection(linear_host, linear_port)
+            connection.request(
+                "POST",
+                "/shorten",
+                body=urlencode({"url": linear_url}),
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+            )
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            response.read()
+            connection.request("GET", "/s/0")
+            response = connection.getresponse()
+            self.assertEqual(response.status, 302)
+            self.assertEqual(response.getheader("Location"), linear_url)
+            response.read()
+            connection.close()
+
+            status, headers, body = self.request("GET", "/s/0")
+            self.assertEqual(status, 302)
+            self.assertEqual(dict(headers)["Location"], chaining_url)
+            self.assertEqual(body, b"")
+        finally:
+            linear_server.shutdown()
+            linear_server.server_close()
+            linear_thread.join()
+
 
 if __name__ == "__main__":
     unittest.main()
