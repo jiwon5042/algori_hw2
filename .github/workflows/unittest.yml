@@ -1,0 +1,64 @@
+name: Unit tests
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - "feature/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unittest:
+    name: unittest
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run unittest suite
+        id: tests
+        run: make test > unittest.log 2>&1
+
+      - name: Publish test summary
+        if: always()
+        env:
+          TEST_OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          cat unittest.log
+          python3 - <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          output = Path("unittest.log").read_text(encoding="utf-8")
+          match = re.search(r"Ran (\d+) tests? in ([\d.]+)s", output)
+          outcome = os.environ["TEST_OUTCOME"]
+          count = int(match.group(1)) if match else 0
+          duration = f"{match.group(2)}s" if match else "unknown"
+          passed = outcome == "success" and re.search(r"^OK$", output, re.MULTILINE)
+          result = "Passed" if passed else "Failed"
+          summary = (
+              "## unittest results\n\n"
+              "| Command | Tests discovered | Result | Duration |\n"
+              "| --- | ---: | --- | ---: |\n"
+              f"| `make test` | {count} | {result} | {duration} |\n"
+          )
+          with open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8") as file:
+              file.write(summary)
+
+          if count == 0:
+              raise SystemExit("unittest did not report any tests")
+          PY
