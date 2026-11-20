@@ -7,7 +7,7 @@ from src.hash_table import HashTable
 
 
 class URLShortener:
-    def __init__(self, hash_table_class: type[HashTable] = HashTable):
+    def __init__(self, hash_table_class: type[HashTable[str]] = HashTable):
         self.by_url = hash_table_class()
         self.by_code = hash_table_class()
         self._next_id = 0
@@ -16,7 +16,10 @@ class URLShortener:
     def _validate_url(url: str) -> None:
         if not isinstance(url, str):
             raise TypeError("url must be a string")
-        if not url or any(character.isspace() for character in url):
+        if not url or any(
+            character.isspace() or ord(character) < 0x20 or ord(character) == 0x7F
+            for character in url
+        ):
             raise ValueError("url must be non-empty and contain no whitespace")
 
         try:

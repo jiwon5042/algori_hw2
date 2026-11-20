@@ -26,7 +26,7 @@
 ## 4. 단축기
 
 - `src/shortener.py`의 `URLShortener`는 `shorten(url: str) -> str`와 `expand(code: str) -> str`를 제공한다.
-- 입력은 공백이 없고 호스트 이름이 있는 `http` 또는 `https` URL이어야 한다. 잘못된 형식은 `ValueError`로 거부한다.
+- 입력은 공백·ASCII 제어 문자가 없고 호스트 이름이 있는 `http` 또는 `https` URL이어야 한다. 잘못된 형식은 `ValueError`로 거부한다.
 - 같은 URL을 다시 단축하면 기존 코드를 돌려준다. 서로 다른 URL은 서로 다른 코드를 받으며, 첫 코드는 0을 base62로 인코딩한 `"0"`이다.
 - 등록되지 않은 코드를 확장하면 `KeyError`를 발생시킨다. 저장소가 재시작되면 등록 데이터는 초기화된다.
 

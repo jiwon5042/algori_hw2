@@ -24,6 +24,7 @@ class URLShortenerTests(unittest.TestCase):
             "ftp://example.com",
             "https:///missing-host",
             "https://example.com/with space",
+            "https://example.com/\x01bad",
         ):
             with self.subTest(url=url):
                 with self.assertRaises(ValueError):

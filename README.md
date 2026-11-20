@@ -19,13 +19,17 @@
 
 | 파일 | 하는 일 |
 | --- | --- |
-| `SPEC.md` | 명세 틀. 에이전트가 초안을 쓰고 **본인이 고칩니다** |
-| `src/` · `tests/` · `experiments/` | 비어 있습니다. 수업에서 채웁니다 |
+| `SPEC.md` · `PLAN.md` | URL 단축기 명세 초안과 구현 순서 |
+| `src/base62.py` | base62 인코딩·디코딩 |
+| `src/hash_table.py` · `src/shortener.py` | 체이닝 해시 테이블과 URL 단축기 |
+| `src/server.py` | URL 입력 폼, 단축 링크, 해시 테이블 조회 화면 |
+| `tests/` | 표준 라이브러리 `unittest` 기반 테스트 |
+| `experiments/` | 체이닝 탐색 비용 실험과 CSV·SVG·분석 결과 |
 | `tools/catchup.sh` | 수업 중 놓친 단계를 따라잡는 스크립트 |
 | `Makefile` | `make test` · `make serve` · `make experiment` |
 
-정답 코드는 들어 있지 않습니다. 에이전트는 작업 공간의 파일을 읽으므로, 정답이
-옆에 있으면 그대로 베껴 와서 연습이 되지 않습니다.
+현재 구현은 학습용 초안입니다. `SPEC.md`를 직접 검토하고, 과제 요구사항과
+맞지 않는 부분은 구현·테스트와 함께 고칩니다.
 
 ## 명령
 
@@ -35,10 +39,13 @@
 | --- | --- |
 | 테스트 | `make test` |
 | 웹 서버 (포트 8000) | `make serve` |
-| 충돌 실험 | `make experiment` |
+| 충돌 실험 (CSV·SVG·분석 생성) | `make experiment` |
 | 놓친 단계 따라잡기 | `sh tools/catchup.sh <단계 번호>` |
 
 외부 라이브러리는 쓰지 않습니다. Python 표준 모듈만으로 충분합니다.
+서버에서는 `/`에서 URL을 입력하고, `/table`에서 버킷과 호너 해시 계산을
+확인합니다. Codespaces에서 휴대폰으로 확인할 때는 포트 8000을 필요한 동안만
+Public으로 설정하고, 확인 후 다시 Private으로 바꿉니다.
 
 ## 로컬에서 하기
 
