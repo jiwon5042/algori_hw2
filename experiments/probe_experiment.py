@@ -8,16 +8,17 @@ import random
 from src.hash_table import HashTable
 
 
-CAPACITY = 1000
-RESULTS_DIR = Path(__file__).resolve().parent / "results"
+CAPACITY = 4093
+RESULTS_CSV = Path(__file__).resolve().parent / "results.csv"
+RESULTS_SVG = Path(__file__).resolve().parent / "results.svg"
 
 
 def measure_load_factors(capacity: int = CAPACITY) -> list[tuple[float, int, float, float, float, float]]:
     rows = []
     random_source = random.Random(2026)
     sample_keys = [
-        f"stored-{random_source.getrandbits(64):016x}"
-        for _ in range(round(4 * capacity))
+        f"https://example.com/{random_source.getrandbits(64):016x}/{index}"
+        for index in range(round(4 * capacity))
     ]
     for quarter in range(1, 17):
         load_factor = quarter / 4
@@ -37,7 +38,10 @@ def measure_load_factors(capacity: int = CAPACITY) -> list[tuple[float, int, flo
         uncovered = capacity
         candidate = 0
         while uncovered and candidate < capacity * 20:
-            key = f"absent-{candidate}"
+            key = (
+                "https://missing.example/"
+                f"{random_source.getrandbits(64):016x}/{candidate}"
+            )
             bucket, _ = table.explain_hash(key)
             if missing_keys[bucket] is None:
                 missing_keys[bucket] = key
@@ -175,53 +179,10 @@ def write_svg(rows: list[tuple[float, int, float, float, float, float]], path: P
     path.write_text("\n".join(elements) + "\n", encoding="utf-8")
 
 
-def write_report(rows: list[tuple[float, int, float, float, float, float]], path: Path) -> None:
-    largest_difference = max(
-        (abs(row[2] - row[3]), row[0]) for row in rows
-    )
-    lines = [
-        "# Separate chaining probe experiment",
-        "",
-        "Reproduce with `make experiment`. The run uses capacity 1,000, a fixed random "
-        "seed (2026), and 64-bit keys; it records all inserted keys for successful "
-        "lookups. For unsuccessful lookups it selects one absent key for each bucket, "
-        "so the bucket sample is balanced.",
-        "",
-        "| Load factor | Keys | Successful measured / theory | Unsuccessful measured / theory |",
-        "| ---: | ---: | ---: | ---: |",
-    ]
-    for alpha, count, success, success_theory, miss, miss_theory in rows:
-        lines.append(
-            f"| {alpha:.2f} | {count} | {success:.3f} / {success_theory:.3f} "
-            f"| {miss:.3f} / {miss_theory:.3f} |"
-        )
-    lines.extend(
-        (
-            "",
-            "The successful-search measurements track `1 + alpha/2`; the largest "
-            f"absolute difference in this deterministic run is {largest_difference[0]:.3f} "
-            f"at alpha={largest_difference[1]:.2f}. Small differences are expected "
-            "because the formula is an expectation and this run uses a finite key set. "
-            "The unsuccessful-search values equal alpha because the experiment probes "
-            "every bucket once; this balanced sampling is intentional and should not "
-            "be mistaken for a random-query estimate.",
-            "",
-            "The CSV table and SVG graph are generated beside this report.",
-            "",
-        )
-    )
-    path.write_text("\n".join(lines), encoding="utf-8")
-
-
 def main() -> None:
-    RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     rows = measure_load_factors()
-    csv_path = RESULTS_DIR / "chaining_probe_results.csv"
-    svg_path = RESULTS_DIR / "chaining_probe_results.svg"
-    report_path = RESULTS_DIR / "chaining_probe_analysis.md"
-    write_csv(rows, csv_path)
-    write_svg(rows, svg_path)
-    write_report(rows, report_path)
+    write_csv(rows, RESULTS_CSV)
+    write_svg(rows, RESULTS_SVG)
 
     print("alpha  n     success measured/theory   unsuccessful measured/theory")
     for alpha, count, success, success_theory, miss, miss_theory in rows:
@@ -229,9 +190,8 @@ def main() -> None:
             f"{alpha:4.2f}  {count:4d}  {success:7.3f}/{success_theory:<7.3f}"
             f"           {miss:7.3f}/{miss_theory:<7.3f}"
         )
-    print(f"\nWrote {csv_path.relative_to(Path.cwd())}")
-    print(f"Wrote {svg_path.relative_to(Path.cwd())}")
-    print(f"Wrote {report_path.relative_to(Path.cwd())}")
+    print(f"\nWrote {RESULTS_CSV.relative_to(Path.cwd())}")
+    print(f"Wrote {RESULTS_SVG.relative_to(Path.cwd())}")
 
 
 if __name__ == "__main__":
