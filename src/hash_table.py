@@ -1,19 +1,24 @@
 """A string-keyed hash table that resolves collisions with linked lists."""
 
+from typing import Generic, TypeVar
 
-class _Node:
-    def __init__(self, key: str, value: object):
+
+Value = TypeVar("Value")
+
+
+class _Node(Generic[Value]):
+    def __init__(self, key: str, value: Value):
         self.key = key
         self.value = value
-        self.next: _Node | None = None
+        self.next: _Node[Value] | None = None
 
 
-class HashTable:
+class HashTable(Generic[Value]):
     def __init__(self, capacity: int = 7):
         if isinstance(capacity, bool) or not isinstance(capacity, int) or capacity <= 0:
             raise ValueError("capacity must be a positive integer")
         self.capacity = capacity
-        self.buckets: list[_Node | None] = [None] * capacity
+        self.buckets: list[_Node[Value] | None] = [None] * capacity
         self._size = 0
         self.last_probes = 0
 
@@ -30,7 +35,9 @@ class HashTable:
             steps.append(value)
         return value, tuple(steps)
 
-    def _find(self, key: str) -> tuple[_Node | None, _Node | None, int]:
+    def _find(
+        self, key: str
+    ) -> tuple[_Node[Value] | None, _Node[Value] | None, int]:
         index, _ = self.explain_hash(key)
         previous = None
         node = self.buckets[index]
@@ -43,7 +50,7 @@ class HashTable:
             node = node.next
         return None, previous, probes
 
-    def set(self, key: str, value: object) -> None:
+    def set(self, key: str, value: Value) -> None:
         node, previous, probes = self._find(key)
         self.last_probes = probes
         if node is not None:
@@ -58,7 +65,7 @@ class HashTable:
             previous.next = new_node
         self._size += 1
 
-    def get(self, key: str) -> object:
+    def get(self, key: str) -> Value:
         node, _, probes = self._find(key)
         self.last_probes = probes
         if node is None:
