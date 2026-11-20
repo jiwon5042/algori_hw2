@@ -1,9 +1,23 @@
 """A string-keyed hash table that resolves collisions with linked lists."""
 
-from typing import Generic, TypeVar
+from typing import Generic, Protocol, TypeVar
 
 
 Value = TypeVar("Value")
+
+
+class HashTableBackend(Protocol[Value]):
+    last_probes: int
+
+    def set(self, key: str, value: Value) -> None: ...
+
+    def get(self, key: str) -> Value: ...
+
+    def delete(self, key: str) -> None: ...
+
+    def contains(self, key: str) -> bool: ...
+
+    def __len__(self) -> int: ...
 
 
 class _Node(Generic[Value]):

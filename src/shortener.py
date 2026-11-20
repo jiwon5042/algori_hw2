@@ -1,15 +1,20 @@
 """In-memory URL shortening backed by custom hash tables."""
 
 from urllib.parse import urlsplit
+from typing import Callable
 
 from src.base62 import encode
-from src.hash_table import HashTable
+from src.hash_table import HashTable, HashTableBackend
 
 
 class URLShortener:
-    def __init__(self, hash_table_class: type[HashTable[str]] = HashTable):
-        self.by_url = hash_table_class()
-        self.by_code = hash_table_class()
+    def __init__(
+        self,
+        hash_table_class: Callable[..., HashTableBackend[str]] = HashTable,
+        table_capacity: int = 101,
+    ):
+        self.by_url: HashTableBackend[str] = hash_table_class(capacity=table_capacity)
+        self.by_code: HashTableBackend[str] = hash_table_class(capacity=table_capacity)
         self._next_id = 0
 
     @staticmethod

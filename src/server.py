@@ -5,7 +5,8 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from html import escape
 from urllib.parse import parse_qs, urlsplit
 
-from src.hash_table import HashTable
+from src.hash_table import HashTable, HashTableBackend
+from src.linear_probing import LinearProbingHashTable
 from src.shortener import URLShortener
 
 
@@ -25,11 +26,33 @@ def _render_page(title: str, content: str) -> bytes:
     return document.encode("utf-8")
 
 
-def _render_table(title: str, table: HashTable[str]) -> str:
+def _render_table(
+    title: str, table: HashTable[str] | LinearProbingHashTable[str]
+) -> str:
     buckets = table.buckets
     content = [f"<h2>{escape(title)}</h2>", f"<p>Last lookup: {table.last_probes} nodes examined</p>"]
     content.append("<ol>")
     for index, head in enumerate(buckets):
+        if isinstance(table, LinearProbingHashTable):
+            if head is None:
+                bucket_contents = "<li>empty</li>"
+            elif head.deleted:
+                bucket_contents = "<li>deleted tombstone</li>"
+            else:
+                calculated_index, steps = table.explain_hash(head.key)
+                trace = "0" if not steps else " -> ".join(str(value) for value in steps)
+                path = " -> ".join(str(value) for value in table.probe_path(head.key))
+                bucket_contents = (
+                    "<li><code>"
+                    + escape(head.key)
+                    + "</code> = <code>"
+                    + escape(str(head.value))
+                    + f"</code>; Horner: {trace} (home {calculated_index}); "
+                    + f"probed cells: {path}</li>"
+                )
+            content.append(f"<li>Cell {index}<ol>{bucket_contents}</ol></li>")
+            continue
+
         entries = []
         node = head
         while node is not None:
@@ -37,7 +60,7 @@ def _render_table(title: str, table: HashTable[str]) -> str:
             trace = "0" if not steps else " -> ".join(str(value) for value in steps)
             entries.append(
                 "<li><code>"
-                + escape(str(node.key))
+                + escape(node.key)
                 + "</code> = <code>"
                 + escape(str(node.value))
                 + f"</code>; Horner: {trace} (bucket {calculated_index})</li>"
@@ -78,8 +101,14 @@ def _handler_for(shortener: URLShortener) -> type[BaseHTTPRequestHandler]:
                 return
 
             if path == "/table":
+                strategy = (
+                    "linear probing"
+                    if isinstance(shortener.by_url, LinearProbingHashTable)
+                    else "separate chaining"
+                )
                 tables = (
-                    _render_table("URLs to codes", shortener.by_url)
+                    f"<p>Selected strategy: {strategy}</p>"
+                    + _render_table("URLs to codes", shortener.by_url)
                     + _render_table("Codes to URLs", shortener.by_code)
                 )
                 self._send_page(200, "Hash table inspection", tables)
@@ -154,19 +183,35 @@ def _handler_for(shortener: URLShortener) -> type[BaseHTTPRequestHandler]:
     return RequestHandler
 
 
-def create_server(host: str = "0.0.0.0", port: int = 8000) -> ThreadingHTTPServer:
-    return ThreadingHTTPServer((host, port), _handler_for(URLShortener()))
+def create_server(
+    host: str = "0.0.0.0",
+    port: int = 8000,
+    hash_table_class: type[HashTableBackend[str]] = HashTable,
+) -> ThreadingHTTPServer:
+    return ThreadingHTTPServer(
+        (host, port),
+        _handler_for(URLShortener(hash_table_class=hash_table_class)),
+    )
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Run the URL shortener web server.")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8000)
+    parser.add_argument("--table", choices=("chaining", "linear"), default="chaining")
     arguments = parser.parse_args()
     if not 1 <= arguments.port <= 65535:
         parser.error("--port must be between 1 and 65535")
 
-    server = create_server(host=arguments.host, port=arguments.port)
+    if arguments.table == "linear":
+        hash_table_class = LinearProbingHashTable
+    else:
+        hash_table_class = HashTable
+    server = create_server(
+        host=arguments.host,
+        port=arguments.port,
+        hash_table_class=hash_table_class,
+    )
     print(f"Serving on http://{arguments.host}:{arguments.port}")
     try:
         server.serve_forever()
