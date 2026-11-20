@@ -13,7 +13,11 @@
   "remoteUser": "root",
   "forwardPorts": [8000],
   "portsAttributes": {
-    "8000": { "label": "url-shortener", "onAutoForward": "notify" }
+    "8000": {
+      "label": "url-shortener",
+      "onAutoForward": "notify",
+      "visibility": "public"
+    }
   },
   "customizations": {
     "vscode": {
