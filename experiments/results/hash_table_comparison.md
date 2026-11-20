@@ -1,4 +1,8 @@
+Repository: https://github.com/jiwon5042/algori_hw2
+
 # Linear probing and chaining comparison
+
+Separate chaining stores colliding keys in a linked list at their home bucket. Linear probing stores each key in its own array cell and scans forward from the home cell when a collision occurs.
 
 Reproduce with `make experiment`. Both tables have capacity 1,000 and receive the same seeded 64-bit keys at each load factor. Successful searches visit every stored key once; unsuccessful searches use the same 5,000 seeded absent-key queries for both implementations. Linear-probing counts include the final empty cell examined on a miss.
 
@@ -18,4 +22,10 @@ Theory: chaining successful `1 + alpha/2`, unsuccessful `alpha`; linear probing 
 
 The chaining successful-search maximum absolute difference in this run is 0.023; the linear unsuccessful-search maximum absolute difference is 14.414. Differences from the formulas are expected-value sampling effects. At alpha=0.9, linear probing averages 36.086 miss probes against the 50.500 expected value: the 5,000 queries measure this one table, whose finite cluster layout is not the average over independently built tables. Linear probing's unsuccessful cost rises sharply as the table fills because primary clusters make long runs of occupied cells more likely; separate chaining grows approximately linearly with alpha.
 
-The SVG contains separate successful/unsuccessful panels. The one-page PDF summarizes the setup, formulas, data, and measured curves.
+The SVG contains separate successful/unsuccessful panels. The two-page PDF summarizes the setup, formulas, data, and measured curves.
+
+## Agent errors and how they were caught
+
+A server test first used a URL pair that did not actually collide at the table's capacity. The missing chain arrow exposed the mistake; checking both Horner indices found a colliding pair and the test then passed.
+
+I also treated a successful localhost response as proof that the Codespaces browser URL was available. Checking the forwarded URL separately showed that its port was not forwarded, so local and external responses must be verified independently.

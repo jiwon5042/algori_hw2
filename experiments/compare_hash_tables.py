@@ -227,7 +227,13 @@ def write_markdown(rows: list[ComparisonRow], path: Path) -> None:
         for row in rows
     )
     lines = [
+        "Repository: https://github.com/jiwon5042/algori_hw2",
+        "",
         "# Linear probing and chaining comparison",
+        "",
+        "Separate chaining stores colliding keys in a linked list at their home bucket. "
+        "Linear probing stores each key in its own array cell and scans forward from "
+        "the home cell when a collision occurs.",
         "",
         "Reproduce with `make experiment`. Both tables have capacity 1,000 and receive "
         "the same seeded 64-bit keys at each load factor. Successful searches visit "
@@ -265,8 +271,19 @@ def write_markdown(rows: list[ComparisonRow], path: Path) -> None:
             "clusters make long runs of occupied cells more likely; separate chaining "
             "grows approximately linearly with alpha.",
             "",
-            "The SVG contains separate successful/unsuccessful panels. The one-page PDF "
+            "The SVG contains separate successful/unsuccessful panels. The two-page PDF "
             "summarizes the setup, formulas, data, and measured curves.",
+            "",
+            "## Agent errors and how they were caught",
+            "",
+            "A server test first used a URL pair that did not actually collide at the "
+            "table's capacity. The missing chain arrow exposed the mistake; checking "
+            "both Horner indices found a colliding pair and the test then passed.",
+            "",
+            "I also treated a successful localhost response as proof that the "
+            "Codespaces browser URL was available. Checking the forwarded URL "
+            "separately showed that its port was not forwarded, so local and external "
+            "responses must be verified independently.",
             "",
         )
     )
@@ -325,18 +342,26 @@ def _pdf_chart(
 
 
 def write_pdf(rows: list[ComparisonRow], path: Path) -> None:
-    content = [
-        _pdf_text(45, 805, 17, "Hash Table Collision Strategy Comparison"),
-        _pdf_text(45, 785, 9, "Capacity 1,000; identical seeded keys; load factors 0.1 to 0.9."),
-        _pdf_text(45, 771, 8, "Theory (success / miss): chaining 1+alpha/2 / alpha; linear 0.5*(1+1/(1-alpha)) / 0.5*(1+1/(1-alpha)^2)."),
+    first_page = [
+        _pdf_text(45, 817, 8, "Repository: https://github.com/jiwon5042/algori_hw2"),
+        _pdf_text(45, 797, 16, "Hash Table Collision Strategies"),
+        _pdf_text(45, 777, 10, "Implementations"),
+        _pdf_text(45, 762, 8, "Chaining: Horner hash selects a bucket; colliding keys form a linked list."),
+        _pdf_text(45, 749, 8, "Linear probing: collisions scan forward to the next empty cell; deletion uses tombstones."),
+        _pdf_text(45, 727, 10, "Experiment conditions"),
+        _pdf_text(45, 712, 8, "Capacity 1,000; load factors 0.1-0.9 (100-900 stored keys); identical seeded 64-bit keys."),
+        _pdf_text(45, 699, 8, "Seed 2026 builds keys; seed 404 generates the same 5,000 absent queries for both tables."),
+        _pdf_text(45, 686, 8, "Success checks every stored key; misses count nodes/cells through the final empty cell."),
+        _pdf_text(45, 666, 8, "Expected probes (success / miss): chaining 1+alpha/2 / alpha; linear"),
+        _pdf_text(45, 654, 8, "0.5*(1+1/(1-alpha)) / 0.5*(1+1/(1-alpha)^2)."),
     ]
     headers = ("alpha", "n", "C-S", "C-S th", "C-M", "C-M th", "L-S", "L-S th", "L-M", "L-M th")
     x_positions = (45, 90, 125, 170, 215, 260, 305, 350, 395, 440)
-    header_y = 745
+    header_y = 632
     for x, header in zip(x_positions, headers):
-        content.append(_pdf_text(x, header_y, 7, header))
+        first_page.append(_pdf_text(x, header_y, 7, header))
     for index, row in enumerate(rows):
-        y = header_y - 15 - index * 13
+        y = header_y - 13 - index * 11
         values = (
             f"{row.load_factor:.1f}",
             str(row.item_count),
@@ -350,54 +375,78 @@ def write_pdf(rows: list[ComparisonRow], path: Path) -> None:
             f"{row.linear_unsuccessful_theory:.2f}",
         )
         for x, value in zip(x_positions, values):
-            content.append(_pdf_text(x, y, 7, value))
-    content.append(
+            first_page.append(_pdf_text(x, y, 7, value))
+    first_page.append(
         _pdf_chart(
             rows,
             45,
-            285,
             245,
-            185,
+            245,
+            205,
             "Successful searches",
             ("chaining_successful", "linear_successful"),
             ("chaining_successful_theory", "linear_successful_theory"),
         )
     )
-    content.append(
+    first_page.append(
         _pdf_chart(
             rows,
             310,
-            285,
             245,
-            185,
+            245,
+            205,
             "Unsuccessful searches",
             ("chaining_unsuccessful", "linear_unsuccessful"),
             ("chaining_unsuccessful_theory", "linear_unsuccessful_theory"),
         )
     )
-    content.extend(
+    first_page.extend(
         (
-            _pdf_text(45, 255, 9, "Interpretation"),
-            _pdf_text(45, 239, 8, "The measurements follow the expected formulas, with finite-sample deviations. Linear-probing"),
-            _pdf_text(45, 226, 8, "miss cost grows rapidly near a full table as primary clusters lengthen; chaining miss cost"),
-            _pdf_text(45, 213, 8, "grows approximately with alpha. At alpha=0.9, linear miss cost is 36.1 vs 50.5 theory:"),
-            _pdf_text(45, 200, 8, "queries sample one table, not the expectation across independently built tables."),
-            _pdf_text(45, 187, 8, "Linear-probing counts include the terminal empty cell."),
-            _pdf_text(45, 30, 7, "Generated by make experiment. Full measurements and method are in the CSV and Markdown files."),
+            _pdf_text(45, 225, 7, "Measured solid lines; dashed lines show theory. Blue: chaining; red: linear probing."),
+            _pdf_text(45, 30, 7, "Full measurement values and reproducible procedure are in the companion CSV and Markdown."),
         )
     )
-    stream = "".join(content).encode("ascii")
+    second_page = [
+        _pdf_text(45, 817, 11, "Interpretation and validation notes"),
+        _pdf_text(45, 792, 10, "Why linear probing degrades near a full table"),
+        _pdf_text(45, 775, 8, "Collisions create primary clusters: consecutive occupied cells attract later keys whose"),
+        _pdf_text(45, 762, 8, "home cells fall inside or before a cluster. As alpha rises, these runs grow, so misses"),
+        _pdf_text(45, 749, 8, "must scan farther before reaching an empty cell. Expected miss cost is"),
+        _pdf_text(45, 736, 8, "0.5*(1+1/(1-alpha)^2), which grows sharply as alpha approaches 1."),
+        _pdf_text(45, 711, 8, "At alpha=0.9, linear probing measured 36.086 miss cells (50.500 theory) and 6.060"),
+        _pdf_text(45, 698, 8, "successful cells (5.500 theory); chaining measured 0.892 miss nodes. The 5,000 misses"),
+        _pdf_text(45, 685, 8, "sample one finite table, so its cluster layout need not equal the theoretical average."),
+        _pdf_text(45, 650, 10, "Agent errors and how they were caught"),
+        _pdf_text(45, 632, 8, "1. A server test initially expected a collision from a URL pair that did not share a"),
+        _pdf_text(45, 619, 8, "   home bucket at capacity 101. The missing chain arrow revealed it; checking the"),
+        _pdf_text(45, 606, 8, "   actual Horner indices identified a matching pair, and the test passed."),
+        _pdf_text(45, 580, 8, "2. I first conflated localhost success with public Codespaces availability. A separate"),
+        _pdf_text(45, 567, 8, "   forwarded-URL check returned 404 while localhost returned 200, and the Ports panel"),
+        _pdf_text(45, 554, 8, "   had no forwarded entry. Checking both endpoints separately caught the mistake."),
+        _pdf_text(45, 30, 7, "Repository: https://github.com/jiwon5042/algori_hw2"),
+    ]
+    streams = (
+        "".join(first_page).encode("ascii"),
+        "".join(second_page).encode("ascii"),
+    )
     objects = (
         b"<< /Type /Catalog /Pages 2 0 R >>",
-        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Pages /Kids [3 0 R 5 0 R] /Count 2 >>",
         b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
-        b"/Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
-        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+        b"/Resources << /Font << /F1 7 0 R >> >> /Contents 4 0 R >>",
         b"<< /Length "
-        + str(len(stream)).encode("ascii")
+        + str(len(streams[0])).encode("ascii")
         + b" >>\nstream\n"
-        + stream
+        + streams[0]
         + b"\nendstream",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] "
+        b"/Resources << /Font << /F1 7 0 R >> >> /Contents 6 0 R >>",
+        b"<< /Length "
+        + str(len(streams[1])).encode("ascii")
+        + b" >>\nstream\n"
+        + streams[1]
+        + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
     )
 
     pdf = bytearray(b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n")
