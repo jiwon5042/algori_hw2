@@ -22,7 +22,10 @@ class URLShortenerTests(unittest.TestCase):
             "",
             "example.com",
             "ftp://example.com",
+            "http://",
+            "https://?q=1",
             "https:///missing-host",
+            "http://example.com:invalid-port",
             "https://example.com/with space",
             "https://example.com/\x01bad",
         ):

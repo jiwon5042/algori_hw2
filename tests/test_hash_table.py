@@ -4,6 +4,11 @@ from src.hash_table import HashTable
 
 
 class HashTableTests(unittest.TestCase):
+    def test_empty_table_has_no_entries(self):
+        table = HashTable()
+        self.assertEqual(len(table), 0)
+        self.assertFalse(table.contains("missing"))
+
     def test_insert_update_and_lookup(self):
         table = HashTable()
         table.set("name", "Ada")
@@ -39,8 +44,10 @@ class HashTableTests(unittest.TestCase):
     def test_empty_key_and_none_value_are_supported(self):
         table = HashTable()
         table.set("", None)
+        table.set("키/🙂", "unicode")
         self.assertTrue(table.contains(""))
         self.assertIsNone(table.get(""))
+        self.assertEqual(table.get("키/🙂"), "unicode")
 
     def test_lookup_records_number_of_compared_nodes(self):
         table = HashTable(capacity=3)
