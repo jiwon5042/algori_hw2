@@ -19,13 +19,17 @@
 
 | 파일 | 하는 일 |
 | --- | --- |
-| `SPEC.md` | 명세 틀. 에이전트가 초안을 쓰고 **본인이 고칩니다** |
-| `src/` · `tests/` · `experiments/` | 비어 있습니다. 수업에서 채웁니다 |
+| `SPEC.md` · `PLAN.md` | URL 단축기 명세 초안과 구현 순서 |
+| `src/base62.py` | base62 인코딩·디코딩 |
+| `src/hash_table.py` · `src/linear_probing.py` | 체이닝·선형 탐지 해시 테이블 |
+| `src/shortener.py` · `src/server.py` | URL 단축기와 테이블 조회 화면 |
+| `tests/` | 표준 라이브러리 `unittest` 기반 테스트 |
+| `experiments/` | 체이닝 탐색 비용 실험과 CSV·SVG·분석 결과 |
 | `tools/catchup.sh` | 수업 중 놓친 단계를 따라잡는 스크립트 |
-| `Makefile` | `make test` · `make serve` · `make experiment` |
+| `Makefile` | `make test` · `make serve` · `make serve-linear` · `make experiment` |
 
-정답 코드는 들어 있지 않습니다. 에이전트는 작업 공간의 파일을 읽으므로, 정답이
-옆에 있으면 그대로 베껴 와서 연습이 되지 않습니다.
+현재 구현은 학습용 초안입니다. `SPEC.md`를 직접 검토하고, 과제 요구사항과
+맞지 않는 부분은 구현·테스트와 함께 고칩니다.
 
 ## 명령
 
@@ -34,11 +38,17 @@
 | 하고 싶은 것 | 명령 |
 | --- | --- |
 | 테스트 | `make test` |
-| 웹 서버 (포트 8000) | `make serve` |
-| 충돌 실험 | `make experiment` |
+| 체이닝 웹 서버 (포트 8000) | `make serve` |
+| 선형 탐지 웹 서버 (포트 8001) | `make serve-linear` |
+| 충돌 실험·비교 (CSV·SVG·보고서 생성) | `make experiment` |
 | 놓친 단계 따라잡기 | `sh tools/catchup.sh <단계 번호>` |
 
 외부 라이브러리는 쓰지 않습니다. Python 표준 모듈만으로 충분합니다.
+두 서버는 서로 다른 포트와 메모리 저장소를 사용하므로 동시에 실행해도 데이터가
+섞이지 않습니다. 각 서버에서 `/`에 URL을 입력하고 `/table`에서 테이블을
+확인합니다. 선형 탐지 서버는 빈 칸을 만나기 전까지 다음 칸들을 차례로
+탐색합니다. Codespaces에서는 체이닝 8000, 선형 탐지 8001 포트를 각각 전달해
+사용합니다.
 
 ## 로컬에서 하기
 

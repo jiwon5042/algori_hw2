@@ -13,10 +13,15 @@
   // Python 테스트를 편집기의 Testing 패널에서 바로 돌릴 수 있게 한다.
   "python.testing.unittestEnabled": true,
   "python.testing.pytestEnabled": false,
-  "python.testing.unittestArgs": ["-v", "-s", "tests", "-p", "test_*.py"],
+  "python.testing.unittestArgs": ["-v", "-s", "tests", "-p", "test_*.py", "-t", "."],
 
   // src/를 import 경로에 넣어 tests가 모듈을 찾을 수 있게 한다.
   "python.analysis.extraPaths": ["src"],
+
+  // Forward the URL shortener's port publicly when VS Code detects it.
+  "remote.portsAttributes": {
+    "8000": { "visibility": "public" }
+  },
 
   "files.insertFinalNewline": true,
   "files.trimTrailingWhitespace": true,

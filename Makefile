@@ -9,8 +9,10 @@
 # 외부 라이브러리를 쓰지 않는다. Python 표준 모듈만으로 돈다.
 
 PORT ?= 8000
+LINEAR_PORT ?= 8001
+TABLE ?= chaining
 
-.PHONY: all test serve experiment clean
+.PHONY: all test serve serve-linear experiment clean
 
 all: test
 
@@ -18,10 +20,14 @@ test:
 	@python3 -m unittest discover -s tests -v
 
 serve:
-	@python3 src/server.py --port $(PORT)
+	@python3 -m src.server --port $(PORT) --table $(TABLE)
+
+serve-linear:
+	@python3 -m src.server --port $(LINEAR_PORT) --table linear
 
 experiment:
-	@python3 experiments/probe_experiment.py
+	@python3 -m experiments.probe_experiment
+	@python3 -m experiments.compare_hash_tables
 
 clean:
 	rm -rf src/__pycache__ tests/__pycache__ experiments/__pycache__
